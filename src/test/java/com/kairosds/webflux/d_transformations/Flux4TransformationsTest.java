@@ -4,6 +4,7 @@ import static com.kairosds.webflux.Character.LUIGI_NAME;
 import static com.kairosds.webflux.Character.MARIO_NAME;
 import static com.kairosds.webflux.Character.PEACH_NAME;
 import static com.kairosds.webflux.Character.TOAD_NAME;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -225,20 +226,18 @@ class Flux4TransformationsTest {
     // GIVEN
 
     // WHEN
-    final Flux<String> characterFlux1 = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
-        .flatMap(character -> this.toName(character));
-    final Flux<String> characterFlux2 = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+    final Flux<String> fluxWithTransform = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
         .transform(character -> character.flatMap(this::toName));
-    final Flux<String> characterFlux3 = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+    final Flux<String> fluxWithTransformDeferred = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
         .transformDeferred(character -> character.flatMap(this::toName));
-    final Flux<String> characterFlux4 = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+    final Flux<String> fluxWithTransformDeferredContextual = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
         .transformDeferredContextual((characterFlux, contextView) -> characterFlux
             .log("for RequestID->" + contextView.get("RequestID"))
             .flatMap(this::toName))
         .contextWrite(Context.of("RequestID", "characterFlux4"));
 
     // THEN
-    StepVerifier.create(characterFlux4)
+    StepVerifier.create(fluxWithTransformDeferredContextual)
         .expectNext(MARIO_NAME)
         .expectNext(LUIGI_NAME)
         .expectNext(PEACH_NAME)
@@ -249,21 +248,85 @@ class Flux4TransformationsTest {
   }
 
   private Mono<String> toName(Character character) {
-    return Mono.just(character.name());
+    return Mono.just(character.name()).delayElement(Duration.ofSeconds(10));
   }
 
   @Test
-  void whenTransformWithOrThenReturnIt() {
+  void whenTransformWithConcatMapThenReturnIt() {
     // GIVEN
 
     // WHEN
-    final Flux<String> characterFlux = Flux.just("START").delayElements(Duration.ofSeconds(0))
-        .or(Flux.just("STOP").delayElements(Duration.ofSeconds(1)));
+    final Flux<String> fluxWithConcatMap = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .concatMap(character -> this.toName(character));
 
     // THEN
-    StepVerifier.create(characterFlux)
-        .expectNext("START")
+    StepVerifier.create(fluxWithConcatMap.log())
+        .expectNext(MARIO_NAME)
+        .expectNext(LUIGI_NAME)
+        .expectNext(PEACH_NAME)
+        .expectNext(TOAD_NAME)
+        .verifyComplete();
+  }
+
+  @Test
+  void whenTransformWithConcatMapIterableWhenThenReturnIt() {
+    // GIVEN
+
+    // WHEN
+    final Flux<String> fluxWithConcatMapIterable = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .concatMapIterable(character -> List.of(character.id(), character.name()));
+
+    // THEN
+    StepVerifier.create(fluxWithConcatMapIterable.log())
+        .expectNext("1", MARIO_NAME)
+        .expectNextCount(6)
+        .verifyComplete();
+  }
+
+  @Test
+  void whenTransformComparingDifferentOptionsThenReturnIt() {
+    // GIVEN
+    final List<String> SUPER_MARIO_NAMES = List.of(MARIO_NAME, LUIGI_NAME, PEACH_NAME, TOAD_NAME);
+
+    // WHEN
+    final Flux<String> fluxWithFlatMap = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .flatMap(character -> this.toName(character));
+    final Flux<String> fluxWithFlatMapSequential = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .flatMapSequential(character -> this.toName(character));
+    final Flux<String> fluxWithConcatMap = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .concatMap(character -> this.toName(character));
+    final Flux<String> fluxWithTransform = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .transform(character -> character.flatMap(this::toName));
+
+    // THEN
+    StepVerifier.create(fluxWithFlatMap.log("<FLATMAP>"))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .verifyComplete();
+    // THEN
+    StepVerifier.create(fluxWithFlatMapSequential.log("<FLATMAP_SEQUENTIAL>"))
+        .expectNext(MARIO_NAME)
+        .expectNext(LUIGI_NAME)
+        .expectNext(PEACH_NAME)
+        .expectNext(TOAD_NAME)
+        .verifyComplete();
+    // THEN
+    StepVerifier.create(fluxWithConcatMap.log("<CONCATMAP>"))
+        .expectNext(MARIO_NAME)
+        .expectNext(LUIGI_NAME)
+        .expectNext(PEACH_NAME)
+        .expectNext(TOAD_NAME)
+        .verifyComplete();
+    // THEN
+    StepVerifier.create(fluxWithTransform.log("<TRANSFORM>"))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
         .verifyComplete();
 
   }
+
 }
