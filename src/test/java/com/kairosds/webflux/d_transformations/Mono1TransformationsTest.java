@@ -80,7 +80,7 @@ class Mono1TransformationsTest {
     // GIVEN
 
     // WHEN
-    final Mono<Void> voidMono = Mono.whenDelayError(Flux.fromIterable(SUPER_MARIO_NAMES));
+    final Mono<Void> voidMono = Mono.when(Flux.fromIterable(SUPER_MARIO_NAMES));
 
     // THEN
     StepVerifier.create(voidMono)
