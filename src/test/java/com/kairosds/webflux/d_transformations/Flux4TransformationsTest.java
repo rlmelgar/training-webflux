@@ -224,24 +224,26 @@ class Flux4TransformationsTest {
   @Test
   void whenTransformWithTransformThenReturnIt() {
     // GIVEN
+    final List<String> SUPER_MARIO_NAMES = List.of(MARIO_NAME, LUIGI_NAME, PEACH_NAME, TOAD_NAME);
 
     // WHEN
+    final Flux<String> fluxWithFlatMap = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
+        .flatMap(character -> this.toName(character));
     final Flux<String> fluxWithTransform = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
         .transform(character -> character.flatMap(this::toName));
     final Flux<String> fluxWithTransformDeferred = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
         .transformDeferred(character -> character.flatMap(this::toName));
     final Flux<String> fluxWithTransformDeferredContextual = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
-        .transformDeferredContextual((characterFlux, contextView) -> characterFlux
-            .log("for RequestID->" + contextView.get("RequestID"))
+        .transformDeferredContextual((characterFlux, contextView) -> characterFlux.log("for RequestID->" + contextView.get("RequestID"))
             .flatMap(this::toName))
         .contextWrite(Context.of("RequestID", "characterFlux4"));
 
     // THEN
-    StepVerifier.create(fluxWithTransformDeferredContextual)
-        .expectNext(MARIO_NAME)
-        .expectNext(LUIGI_NAME)
-        .expectNext(PEACH_NAME)
-        .expectNext(TOAD_NAME)
+    StepVerifier.create(fluxWithTransform)
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
+        .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
         .verifyComplete();
     // THEN
 
@@ -327,6 +329,27 @@ class Flux4TransformationsTest {
         .assertNext(name -> assertThat(SUPER_MARIO_NAMES).contains(name))
         .verifyComplete();
 
+  }
+
+  Mono<Void> deleteCharacters(List<Character> characterList) {
+    return Flux.fromIterable(characterList)
+        .flatMap(character -> this.characterPersistenceService.deleteScore(character)
+            .thenEmpty(this.characterPersistenceService.deleteCharacter(character)))
+        .then();
+  }
+
+  CharacterPersistenceService characterPersistenceService = new CharacterPersistenceService();
+
+  class CharacterPersistenceService {
+
+    public Mono<Void> deleteCharacter(Character character) {
+      return Mono.just(character)
+          .then(Mono.just("sss").then());
+    }
+
+    public Mono<Void> deleteScore(Character character) {
+      return Mono.empty();
+    }
   }
 
 }

@@ -38,14 +38,15 @@ class RepeatAndRetryTest {
   @Test
   void whenTransformWithRepeat2WithThenReturnIt() {
     // GIVEN
+    final long repeats = 10;
 
     // WHEN
     final Flux<Character> characterMono = Flux.fromIterable(SUPER_MARIO_CHARACTERS)
-        .repeat(1);
+        .repeat(repeats);
 
     // THEN
     StepVerifier.create(characterMono)
-        .expectNextCount(8)
+        .expectNextCount((1 + repeats) * SUPER_MARIO_CHARACTERS.size())
         .verifyComplete();
   }
 
@@ -93,8 +94,10 @@ class RepeatAndRetryTest {
   private Flux<String> storageNotFull(long elements) {
     this.storage += elements;
     if (this.storage > 9) {
+      System.out.println("Storage full!");
       throw new RuntimeException("Storage full!");
     }
+    System.out.println("Storage left!");
     return Flux.just("Storage left!");
   }
 
@@ -138,4 +141,36 @@ class RepeatAndRetryTest {
         .expectNextCount(4)
         .verifyComplete();
   }
+
+  @Test
+  void whenGiveMeFastestWhenThenReturnTheFastest() {
+    // GIVEN
+    final long repeats = 10;
+    final int delay1 = new Random().nextInt(3);
+
+    int delay2 = new Random().nextInt(3);
+
+    while (delay1 == delay2) {
+      delay2 = new Random().nextInt(3);
+    }
+    final long expectedCount = delay1 < delay2 ? 4 * (repeats + 1) : (repeats + 1);
+
+    System.out.println("Delay 1:" + delay1 + ", Delay 2:" + delay2);
+    System.out.println("expectedCount " + expectedCount);
+    // WHEN
+    final Flux<Character> characterFlux = this.giveMeFastest(repeats, delay1, delay2);
+
+    // THEN
+    StepVerifier.create(characterFlux.log())
+        .expectNextCount(expectedCount)
+        .verifyComplete();
+  }
+
+  private Flux<Character> giveMeFastest(long repeats, int delay1, int delay2) {
+
+    return Flux.fromIterable(SUPER_MARIO_CHARACTERS).delayElements(Duration.ofMillis(delay1 * 10L))
+        .or(Mono.just(Character.getBowser()).delayElement(Duration.ofMillis(delay2 * 10L)))
+        .repeat(repeats);
+  }
+
 }
