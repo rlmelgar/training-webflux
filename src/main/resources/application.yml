@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: Webflux Training
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost/uwebfluxdb
+    username: uwebfluxdb
+    password: pwebfluxdb
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: mongodb
+      username: uwebfluxdb
+      password: pwebfluxdb
+      authentication-database: admin
+
+  webflux:
+    base-path: /supermario
+
+logging:
+  level:
+    root: INFO
+    org:
+      apache:
+        coyote:
+          http11:
+            Http11InputBuffer: DEBUG
+    com:
+      kairosds: DEBUG
