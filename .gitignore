@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+docker/postgres_data/
+tests.log

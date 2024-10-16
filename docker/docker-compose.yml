@@ -1,0 +1,28 @@
+services:
+  mongodb:
+    image: mongo:4.4.17
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-data:/data/db2
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: uwebfluxdb
+      MONGO_INITDB_ROOT_PASSWORD: pwebfluxdb
+
+  postgresdb:
+    image: 'postgres:latest'
+    restart: always
+    environment:
+      - POSTGRES_USER=uwebfluxdb
+      - POSTGRES_PASSWORD=pwebfluxdb
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  mongo-data:
+  db:
+    driver: local
