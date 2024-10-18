@@ -2,6 +2,7 @@ package com.kairosds.webflux.application.usecase;
 
 import java.util.List;
 
+import com.kairosds.webflux.domain.exception.CustomWebClientException;
 import com.kairosds.webflux.domain.model.CharacterSM;
 import com.kairosds.webflux.domain.port.CharacterPersistencePort;
 import com.kairosds.webflux.domain.port.WorldTimePort;
@@ -32,7 +33,10 @@ public class GetAllCharacterUseCase {
   public Mono<Tuple2<String, List<CharacterSM>>> getAllR2dbc() {
     log.debug("[START getAllR2dbc]");
     return this.worldTimePort.getTime()
+        .onErrorMap(throwable -> new CustomWebClientException("World Time", throwable))
         .zipWith(this.characterR2dbcAdapter.getAll().collectList())
-        .doOnSuccess(tuple2 -> log.debug("[STOP getAllR2dbc]"));
+        .doOnSuccess(tuple2 -> log.debug("[STOP getAllR2dbc]"))
+        .onErrorStop()
+        .doOnError(throwable -> log.warn("[STOP getAllR2dbc] Error calling to worldTimeApi."));
   }
 }
