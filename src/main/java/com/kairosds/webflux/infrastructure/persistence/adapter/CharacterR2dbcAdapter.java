@@ -30,8 +30,9 @@ public class CharacterR2dbcAdapter implements CharacterPersistencePort {
   @Override
   public Mono<CharacterSM> insert(CharacterSM character) {
     log.debug("[START insert] character {}", character);
-    character.setId(null);
-    return Mono.just(character).map(this.characterTableMapper::toTable)
+    return Mono.just(character)
+        .map(this.characterTableMapper::toTable)
+        .map(characterTable -> characterTable.setId(null))
         .flatMap(this.characterR2dbcRepository::save)
         .map(this.characterTableMapper::toModel)
         .doOnSuccess(characterSM -> log.debug("[STOP insert] characterSM inserted {}", characterSM));
