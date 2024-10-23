@@ -1,7 +1,9 @@
 package com.kairosds.webflux.infrastructure.mongodb.adapter;
 
+import com.kairosds.webflux.domain.exception.EntityNotFoundException;
 import com.kairosds.webflux.domain.model.CharacterSM;
 import com.kairosds.webflux.domain.port.CharacterPersistencePort;
+import com.kairosds.webflux.infrastructure.mongodb.document.CharacterDocument;
 import com.kairosds.webflux.infrastructure.mongodb.mapper.CharacterDocumentMapper;
 import com.kairosds.webflux.infrastructure.mongodb.repository.CharacterReactiveMongoRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,5 +35,16 @@ public class CharacterMongoDbAdapter implements CharacterPersistencePort {
         .flatMap(this.characterReactiveMongoRepository::save)
         .map(this.characterDocumentMapper::toModel)
         .doOnSuccess(characterSM -> log.debug("[STOP insert] characterSM inserted {}", characterSM));
+  }
+
+  @Override
+  public Mono<Void> deleteById(String id) {
+    log.debug("[START deleteById] id {}", id);
+    return this.characterReactiveMongoRepository.findById(id)
+        .switchIfEmpty(Mono.error(new EntityNotFoundException(id, "id")))
+        .map(CharacterDocument::getId)
+        .flatMap(this.characterReactiveMongoRepository::deleteById)
+        .doOnSuccess(unused -> log.debug("[STOP deleteById] id deleted {}", id))
+        .doOnError(throwable -> log.debug("[ERROR deleteById] id ERROR!!", throwable));
   }
 }
