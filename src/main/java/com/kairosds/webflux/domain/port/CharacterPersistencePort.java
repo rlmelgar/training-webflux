@@ -9,4 +9,6 @@ public interface CharacterPersistencePort {
   Flux<CharacterSM> getAll();
 
   Mono<CharacterSM> insert(CharacterSM character);
+
+  Mono<Void> deleteById(String id);
 }

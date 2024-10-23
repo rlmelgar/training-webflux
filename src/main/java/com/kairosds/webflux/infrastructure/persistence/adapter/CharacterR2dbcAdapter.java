@@ -37,4 +37,11 @@ public class CharacterR2dbcAdapter implements CharacterPersistencePort {
         .map(this.characterTableMapper::toModel)
         .doOnSuccess(characterSM -> log.debug("[STOP insert] characterSM inserted {}", characterSM));
   }
+
+  @Override
+  public Mono<Void> deleteById(String id) {
+    log.debug("[START deleteById] id {}", id);
+    return this.characterR2dbcRepository.deleteById(id)
+        .doOnSuccess(characterSM -> log.debug("[STOP deleteById] id deleted {}", id));
+  }
 }

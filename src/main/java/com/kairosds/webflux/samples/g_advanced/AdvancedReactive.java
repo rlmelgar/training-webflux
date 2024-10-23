@@ -76,7 +76,7 @@ public class AdvancedReactive {
 
   public Flux<CharacterRecord> fluxParallel() {
     return Flux.fromIterable(SUPER_MARIO_CHARACTERS)
-        .parallel()
+        .parallel(4)
         .runOn(Schedulers.parallel())
         .flatMap(characterRecord -> this.auxiliaryService.getFriends(characterRecord).delayElements(Duration.ofSeconds(2)))
         .sequential();
